@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🎛️ Macro Mixer — the economy's mixing board</title>
+<style>
+:root{
+--bg:#0b1020; --panel:#141b33; --panel2:#1b2544; --ink:#e8ecf8; --muted:#93a0c4;
+--line:#26325a; --up:#3ddc84; --down:#ff6b7a; --neutral:#6b7aa8; --accent:#7aa2ff;
+--gold:#f2c14e;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{
+background:radial-gradient(1200px 600px at 20% -10%, #17204a 0%, transparent 60%),
+radial-gradient(1000px 500px at 100% 0%, #241a3f 0%, transparent 55%),
+var(--bg);
+color:var(--ink); font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+padding:24px 18px 60px; -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1120px;margin:0 auto}
+header h1{margin:0;font-size:26px;letter-spacing:-.02em}
+header p.sub{margin:6px 0 0;color:var(--muted);max-width:70ch}
+.howto{margin-top:14px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:0}
+.howto>summary{cursor:pointer;padding:12px 16px;font-weight:600;list-style:none;color:var(--accent)}
+.howto>summary::-webkit-details-marker{display:none}
+.howto>summary::before{content:"▸ ";color:var(--muted)}
+.howto[open]>summary::before{content:"▾ "}
+.howto .body{padding:0 16px 16px;color:var(--muted);font-size:14px}
+.howto .body b{color:var(--ink)}
+.legend{display:flex;gap:16px;flex-wrap:wrap;margin-top:10px;font-size:13px;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.dot{width:10px;height:10px;border-radius:50%}
+
+.presets{display:flex;gap:8px;flex-wrap:wrap;margin:22px 0 8px}
+.presets button{
+background:var(--panel2);color:var(--ink);border:1px solid var(--line);
+padding:8px 12px;border-radius:999px;cursor:pointer;font-size:13px;font-weight:600;
+transition:.15s;
+}
+.presets button:hover{border-color:var(--accent);transform:translateY(-1px)}
+.presets button.reset{background:transparent;color:var(--muted)}
+
+.sliders{display:flex;flex-wrap:nowrap;gap:10px;align-items:stretch;margin-top:8px;overflow-x:auto;padding-bottom:4px}
+.card{
+flex:1 1 0;min-width:0;background:var(--panel);border:1px solid var(--line);border-radius:14px;
+padding:12px 8px;display:flex;flex-direction:column;align-items:center;
+transition:border-color .2s, box-shadow .2s;
+}
+.card.active{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent),0 10px 30px rgba(0,0,0,.35)}
+.card .name{font-weight:700;font-size:12.5px;text-align:center;height:3em;line-height:1.2;display:grid;place-items:center;overflow:hidden}
+.card .emoji{font-size:15px}
+.card .val{font-variant-numeric:tabular-nums;font-weight:700;font-size:15px;margin:2px 0 8px}
+.card .val .arrow{font-size:12px;margin-left:3px}
+.slot{display:flex;align-items:center;gap:6px;height:196px}
+.scale{display:flex;flex-direction:column;justify-content:space-between;height:180px;font-size:10px;color:var(--muted)}
+input[type=range].vert{
+writing-mode:vertical-lr; direction:rtl;
+-webkit-appearance:slider-vertical; appearance:slider-vertical;
+width:10px;height:180px;cursor:grab;accent-color:var(--neutral);
+}
+input[type=range].vert:active{cursor:grabbing}
+.card .explain{
+margin-top:10px;background:transparent;border:1px solid var(--line);color:var(--muted);
+border-radius:8px;padding:5px 6px;cursor:pointer;font-size:11.5px;font-weight:600;width:100%;
+}
+.card .explain:hover{border-color:var(--accent);color:var(--ink)}
+.card.active .explain{background:var(--panel2);color:var(--ink);border-color:var(--accent)}
+
+/* Explain drawer — full width below the single slider row */
+.detail{margin-top:14px;background:var(--panel);border:1px solid var(--accent);border-radius:16px;padding:16px 18px}
+.detail[hidden]{display:none}
+.detail .dhead{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px;flex-wrap:wrap}
+.detail .dhead h3{margin:0;font-size:16px}
+.tabs{display:flex;gap:6px}
+.tabs button{background:var(--panel2);border:1px solid var(--line);color:var(--muted);
+border-radius:8px;padding:6px 12px;cursor:pointer;font-size:12px;font-weight:700}
+#detail[data-tab=eli5] .tabs button[data-t=eli5],
+#detail[data-tab=math] .tabs button[data-t=math]{background:var(--accent);color:#0b1020;border-color:var(--accent)}
+#detail .math{display:none}
+#detail[data-tab=math] .math{display:block}
+#detail[data-tab=math] .eli5{display:none}
+.what{background:var(--panel2);border-radius:10px;padding:10px 12px;font-size:13.5px;color:var(--ink);margin-bottom:12px}
+.what .lbl{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:4px}
+.rels{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:8px}
+.rel{background:var(--panel2);border-radius:10px;padding:10px 12px}
+.rel-head{display:flex;align-items:center;flex-wrap:wrap;gap:6px;font-size:13px;font-weight:600}
+.rel-head .oth{display:inline-flex;align-items:center;gap:4px}
+.pair{font-size:12px;font-weight:700;padding:1px 7px;border-radius:999px}
+.pair.pos{background:rgba(61,220,132,.15);color:var(--up)}
+.pair.neg{background:rgba(255,107,122,.15);color:var(--down)}
+.regime{font-size:12px;color:var(--gold);cursor:help}
+.rel-body{font-size:12.5px;color:var(--muted);margin-top:6px}
+.rel-body .math{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px}
+
+.why{margin-top:26px;background:linear-gradient(180deg,var(--panel),#111834);border:1px solid var(--line);
+border-radius:16px;padding:18px 20px}
+.why h2{margin:0 0 4px;font-size:16px}
+.why .driver{color:var(--muted);font-size:13px;margin-bottom:12px}
+.why ul{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px}
+.why li{background:var(--panel2);border-radius:10px;padding:9px 11px;font-size:13px;display:flex;align-items:baseline;gap:8px}
+.why li .mv{font-weight:800;font-variant-numeric:tabular-nums}
+.why li .mv.u{color:var(--up)} .why li .mv.d{color:var(--down)} .why li .mv.f{color:var(--muted)}
+.why li small{color:var(--muted);display:block}
+.empty{color:var(--muted);font-size:13px}
+
+footer{margin-top:30px;color:var(--muted);font-size:12.5px;border-top:1px solid var(--line);padding-top:16px}
+footer ul{margin:8px 0 0;padding-left:18px} footer li{margin:4px 0}
+footer b{color:var(--ink)}
+@media (max-width:760px){ .sliders{gap:8px} .card{flex:0 0 118px} } /* keep one row; scroll horizontally on small screens */
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+<h1>🎛️ Macro Mixer</h1>
+<p class="sub">The economy on a mixing board. Nine dials — gold, bonds, inflation, the dollar and more — wired the way real markets behave. <b>Slide any one</b> and watch the rest respond. Hit <b>Explain</b> under a dial for the math and a plain-English version.</p>
+
+<details class="howto">
+<summary>How it works</summary>
+<div class="body">
+<p><b>One factor drives at a time.</b> Whatever slider you grab becomes “the cause”; all eight others recompute from neutral as its <i>effects</i>, rippling through 2nd- and 3rd-order links (e.g. tension → oil → inflation → yields). Presets can pin two drivers at once.</p>
+<p>Under the hood it's a directed influence network solved by damped iteration — stable, never explodes, and directionally faithful to how these instruments correlate. It shows <b>typical co-movement, not a forecast.</b></p>
+<div class="legend">
+<span><span class="dot" style="background:var(--up)"></span> above neutral (↑)</span>
+<span><span class="dot" style="background:var(--down)"></span> below neutral (↓)</span>
+<span><span style="color:var(--gold)">⚡</span> regime-dependent (can flip sign)</span>
+</div>
+</div>
+</details>
+</header>
+
+<div class="presets" id="presets">
+<button data-preset="stagflation">🛢️ Stagflation ’70s</button>
+<button data-preset="gfc">🏚️ 2008 Crisis</button>
+<button data-preset="covid">🦠 COVID Crash ’20</button>
+<button data-preset="hikes">📈 Rate-Hike Cycle ’22</button>
+<button data-preset="war">⚔️ War Shock</button>
+<button class="reset" data-preset="reset">↺ Reset to neutral</button>
+</div>
+
+<div class="sliders" id="sliders"></div>
+<div class="detail" id="detail" data-tab="eli5" hidden></div>
+
+<section class="why" id="why">
+<h2>💡 Why did this move?</h2>
+<div class="driver" id="whyDriver">Grab a slider (or pick a scenario) to see the chain reaction explained.</div>
+<ul id="whyList"></ul>
+</section>
+
+<footer>
+<b>Reality check.</b>
+<ul>
+<li>This is a <b>teaching model of typical relationships</b>, not a prediction. Real markets are noisy and regime-dependent.</li>
+<li>Links marked <b style="color:var(--gold)">⚡</b> can <b>flip sign</b> depending on the regime — e.g. stocks vs. yields move opposite in inflation scares but together in growth scares.</li>
+<li>Gold really tracks <b>real yields</b> (nominal yield − inflation) — which is why it can rise even as rates climb, if inflation climbs faster.</li>
+<li>Rate hikes cool inflation only with <b>long lags</b>, so that particular link is deliberately weak here.</li>
+<li>“Geopolitical Tension” doubles as the market’s general <b>fear / risk-off dial</b> (used that way in the 2008 & COVID presets).</li>
+</ul>
+</footer>
+</div>
+
+<script>
+// ---------- FACTORS ----------
+const FACTORS = [
+{ id:'policy_rate', name:'Policy Rate', short:'Rate', emoji:'🏦',
+eli5:'The interest rate the central bank (like the Fed) sets — the economy’s master dial for the cost of money.',
+math:'The overnight rate banks charge each other, set by the central bank. It anchors the short end of the yield curve.' },
+{ id:'inflation', name:'Inflation', short:'Inflation', emoji:'🔥',
+eli5:'How fast prices are rising. High inflation means your money buys less each year.',
+math:'The % change in a price index (CPI) per year. Here it’s expected inflation, which drives breakevens via the Fisher equation.' },
+{ id:'bond_yield', name:'Bond Yield', short:'Yield', emoji:'📈',
+eli5:'The interest rate you earn for lending to the government for 10 years.',
+math:'The internal rate of return that discounts a bond’s fixed cash flows to its price ≈ real yield + expected inflation + term premium.' },
+{ id:'bond_price', name:'Bond Price', short:'Bond $', emoji:'🧾',
+eli5:'What that 10-year government bond costs to buy today.',
+math:'Present value of the bond’s coupons + principal: P = Σ Cᵢ/(1+y)ⁱ. Moves inversely to yield.' },
+{ id:'gold', name:'Gold', short:'Gold', emoji:'🪙',
+eli5:'The price of gold — the classic “safe” asset people hold when nervous or to guard against inflation.',
+math:'A non-yielding real asset. Its price tracks the inverse of real yields and of the US dollar.' },
+{ id:'stocks', name:'Stocks', short:'Stocks', emoji:'📊',
+eli5:'The overall stock market — owning slices of companies. The “risk-on” asset.',
+math:'A claim on discounted future earnings: P = Σ Eₙ/(1+r)ⁿ. Very sensitive to the discount rate r.' },
+{ id:'usd', name:'US Dollar', short:'USD', emoji:'💵',
+eli5:'The strength of the US dollar against other currencies.',
+math:'A trade-weighted dollar index (DXY). Driven by relative real rates and safe-haven demand.' },
+{ id:'oil', name:'Oil', short:'Oil', emoji:'🛢️',
+eli5:'The price of crude oil — the raw energy that powers the whole economy.',
+math:'A globally traded, USD-denominated commodity set by supply & demand; a heavy input to headline inflation.' },
+{ id:'geopolitical', name:'Geopolitical Tension', short:'Tension', emoji:'⚔️',
+eli5:'How tense the world feels — wars, conflicts, crises. The “fear” dial.',
+math:'An exogenous risk shock. Propagates through safe-haven, risk-premium and commodity-supply channels.' },
+];
+const F = Object.fromEntries(FACTORS.map(f=>[f.id,f]));
+
+// ---------- DISPLAY EDGES (undirected, validated correlations) ----------
+const EDGES = [
+{a:'bond_yield',b:'bond_price',sign:'-',regime:false,tag:'inverse by definition',
+math:'P = ΣCᵢ/(1+y)ⁱ. Yield y sits in the denominator, so price falls monotonically as yield rises (duration). An identity, ≈ −1.',
+eli5:'A bond pays fixed cash. If new bonds offer a juicier rate, nobody wants the old low-paying one — so its price must drop to compete.'},
+{a:'policy_rate',b:'bond_yield',sign:'+',regime:true,tag:'hikes lift yields',
+math:'The 10Y ≈ average of expected future short rates + term premium. Raising policy lifts that path — though aggressive late-cycle hikes can invert the curve.',
+eli5:'The central bank sets the “base” rate. Hike it and borrowing gets pricier everywhere, so longer bonds demand higher rates too.'},
+{a:'policy_rate',b:'stocks',sign:'-',regime:true,tag:'pricier money, cheaper stocks',
+math:'Stock value P = ΣE/(1+r)ⁿ. A higher discount rate r shrinks present value, and bonds become a competing safe return.',
+eli5:'Higher rates make safe savings attractive and company borrowing costlier, so investors pay less for risky stocks.'},
+{a:'policy_rate',b:'usd',sign:'+',regime:false,tag:'higher rates lure capital',
+math:'Rate-differential capital flows (the carry trade — and the empirical flip-side of uncovered interest parity): money chases the higher-yielding currency. The differential vs other central banks bids up DXY.',
+eli5:'If US savings pay more than everyone else’s, global money flows in to grab it — and must buy dollars first, lifting the dollar.'},
+{a:'inflation',b:'bond_yield',sign:'+',regime:false,tag:'lenders demand more',
+math:'Fisher: nominal yield = real yield + expected inflation (+ risk premium). Lenders demand extra yield to offset cheaper future money.',
+eli5:'If prices rise 5%/yr, nobody lends at 2% — they’d lose money. So expected inflation gets baked straight into yields.'},
+{a:'inflation',b:'policy_rate',sign:'+',regime:false,tag:'central bank reacts',
+math:'Taylor rule: the central bank raises the policy rate more than one-for-one with inflation to keep it anchored.',
+eli5:'When inflation runs hot, the central bank hikes rates to cool the economy. High inflation → higher rates.'},
+{a:'inflation',b:'gold',sign:'+',regime:true,tag:'inflation hedge',
+math:'Gold’s real return ≈ −(real yield). Higher expected inflation lowers real yields → gold up — but only if nominal rates don’t rise even faster (see 2022).',
+eli5:'Gold is a store of value when cash is losing purchasing power — but only while interest rates don’t climb faster than inflation.'},
+{a:'geopolitical',b:'gold',sign:'+',regime:false,tag:'safe haven',
+math:'Safe-haven demand: in a crisis, money shifts to assets with no default/counterparty risk. Episodic and mean-reverts as the shock is priced.',
+eli5:'When the world feels scary, people pile into gold because it’s nobody’s IOU — it can’t go bankrupt. Fear up, gold up.'},
+{a:'geopolitical',b:'bond_yield',sign:'-',regime:true,tag:'flight to safety',
+math:'Flight-to-quality bids up Treasuries (yields down). But an inflationary/oil-shock conflict pushes yields up via the inflation channel — sign can flip.',
+eli5:'In a scare, investors rush into ultra-safe government bonds, pushing yields down. Unless the crisis spikes oil — then inflation fear pushes yields back up.'},
+{a:'geopolitical',b:'stocks',sign:'-',regime:false,tag:'risk-off',
+math:'The equity risk premium jumps and expected earnings fall. Historically the dip is shallow and short-lived unless growth is durably hit.',
+eli5:'Uncertainty makes investors dump risky stocks for safety. The drop is usually sharp but often fades within weeks.'},
+{a:'geopolitical',b:'oil',sign:'+',regime:false,tag:'supply-risk premium',
+math:'A supply-disruption risk premium — largest when producers or chokepoints (Hormuz, Russia, Mideast) are threatened.',
+eli5:'Wars near oil-producing regions threaten supply, so traders bid oil up on the fear of shortages.'},
+{a:'oil',b:'inflation',sign:'+',regime:false,tag:'energy feeds prices',
+math:'Energy is a direct CPI component plus second-round pass-through to transport & production. Hits headline CPI more than core.',
+eli5:'Oil is in everything — fuel, shipping, plastics. Pricier oil pushes up the cost of nearly all goods, i.e. inflation.'},
+{a:'usd',b:'gold',sign:'-',regime:false,tag:'priced in dollars',
+math:'Gold is priced in USD, so a stronger dollar makes it costlier for foreign buyers (demand falls). They also share an inverse link to US real rates.',
+eli5:'Gold is priced in dollars worldwide. A stronger dollar makes it more expensive for everyone else, cooling demand and the price.'},
+{a:'usd',b:'oil',sign:'-',regime:false,tag:'priced in dollars',
+math:'Oil is dollar-denominated; a stronger dollar mechanically lowers its price and dents foreign demand. Looser than gold since oil is supply/demand-led.',
+eli5:'Like gold, oil is bought in dollars. A pricier dollar makes oil more expensive abroad, nudging the price down.'},
+{a:'bond_yield',b:'stocks',sign:'-',regime:true,tag:'discount-rate drag',
+math:'Equity value = ΣE/(1+y+erp)ⁿ. Rising yields lift the denominator. Flips positive in low-inflation regimes where bonds hedge stocks (growth scares).',
+eli5:'Higher bond yields rival stocks and shrink the value of future profits, so stocks tend to fall. In calm eras this can flip.'},
+{a:'bond_yield',b:'usd',sign:'+',regime:false,tag:'yields attract capital',
+math:'Higher real/relative yields draw foreign capital inflows, bidding up the dollar (same force as policy_rate → USD).',
+eli5:'Higher US bond yields lure foreign investors, who must buy dollars first — lifting the dollar.'},
+{a:'bond_yield',b:'gold',sign:'-',regime:true,tag:'opportunity cost',
+math:'Gold pays no coupon, so it competes with the real yield on bonds. Higher real yields → hold bonds not gold. Gold’s most robust driver.',
+eli5:'Bonds pay interest; gold pays nothing. When bonds pay more, holding shiny metal costs you that lost interest — so gold loses its shine.'},
+{a:'geopolitical',b:'usd',sign:'+',regime:true,tag:'dollar is a haven',
+math:'The dollar is the world’s reserve/haven currency; global risk-off drives demand for dollars and Treasuries. Flips if the US is the shock’s epicenter.',
+eli5:'In a global panic, everyone wants the world’s safest money — US dollars. So scary headlines usually lift the dollar too.'},
+{a:'gold',b:'oil',sign:'+',regime:true,tag:'commodities co-move',
+math:'Both are USD-denominated real assets that co-move on the inflation/commodity cycle and dollar swings — but they diverge in risk-off slumps, where gold’s haven bid fights oil’s collapsing demand (COVID 2020).',
+eli5:'Gold and oil are both “stuff” priced in dollars, so they often drift together on inflation — but in a recession scare gold can rise while oil crashes.'},
+{a:'usd',b:'stocks',sign:'-',regime:true,tag:'strong-dollar drag',
+math:'A stronger dollar dents US multinationals’ overseas earnings and tightens global financial conditions (“dollar smile” haven bid). Weak, regime-dependent.',
+eli5:'A super-strong dollar makes US companies’ foreign sales worth less and signals global stress — a mild drag on stocks.'},
+{a:'oil',b:'stocks',sign:'-',regime:true,tag:'cost squeeze',
+math:'Supply-driven oil spikes raise input costs and squeeze margins. Flips positive when oil rises on strong demand (a growth signal).',
+eli5:'When oil spikes because supply is threatened, it eats company profits and worries consumers — a headwind for stocks.'},
+];
+
+// ---------- DIRECTED INFLUENCE MATRIX (engine) ----------
+// w = how much a +deviation in `from` pushes `to`. Asymmetric where causation demands.
+// NOTE: bond_price is NOT in this matrix — it is derived as a pure inverse mirror of
+// bond_yield after solving (see solve()), which avoids a yield<->price positive-feedback loop.
+const W = [
+['policy_rate','bond_yield',0.60],['bond_yield','policy_rate',0.15],
+['policy_rate','stocks',-0.35],
+['policy_rate','usd',0.45],
+['policy_rate','inflation',-0.15], // hikes cool inflation (weak, lagged)
+['inflation','bond_yield',0.55],['bond_yield','inflation',-0.05],
+['inflation','policy_rate',0.45], // central bank reacts (strong, but lagged/looser)
+['inflation','gold',0.35],
+['inflation','oil',0.10],
+['oil','inflation',0.55],
+['oil','stocks',-0.20],['stocks','oil',0.15],
+['geopolitical','gold',0.50],
+['geopolitical','bond_yield',-0.30],
+['geopolitical','stocks',-0.40],
+['geopolitical','oil',0.50],
+['geopolitical','usd',0.40],
+['usd','gold',-0.45],['gold','usd',-0.15],
+['usd','oil',-0.40],
+['usd','stocks',-0.25],['stocks','usd',-0.10],
+['bond_yield','stocks',-0.30],['stocks','bond_yield',0.10],
+['bond_yield','usd',0.35],
+['bond_yield','gold',-0.45],
+['gold','oil',0.25],['oil','gold',0.25],
+];
+
+// ---------- SOLVER (damped Jacobi, clamped — always stable) ----------
+const YP=0.98; // yield<->price inverse coupling
+function solve(pinned){ // pinned: Map(id -> deviation)
+const dev = {}; FACTORS.forEach(f=>dev[f.id]=0);
+// A bond_price pin is really an (inverse) yield shock — translate it so the mirror stays consistent.
+const pin = new Map(pinned);
+let pricePin=null;
+if(pin.has('bond_price') && !pin.has('bond_yield')){
+pricePin = pin.get('bond_price');
+pin.set('bond_yield', Math.max(-50,Math.min(50,-pricePin/YP)));
+pin.delete('bond_price');
+}
+pin.forEach((v,k)=>dev[k]=v);
+const omega=0.5, iters=80;
+for(let t=0;t<iters;t++){
+const inflow={}; FACTORS.forEach(f=>inflow[f.id]=0);
+for(const [from,to,w] of W){ inflow[to]+=w*dev[from]; }
+for(const f of FACTORS){
+if(f.id==='bond_price' || pin.has(f.id)) continue;
+let nv=(1-omega)*dev[f.id]+omega*inflow[f.id];
+dev[f.id]=Math.max(-50,Math.min(50,nv));
+}
+}
+// bond_price is a pure mirror of yield (unless the user is driving price directly)
+dev.bond_price = pricePin!==null ? pricePin : Math.max(-50,Math.min(50,-YP*dev.bond_yield));
+return dev;
+}
+
+// ---------- RENDER SLIDERS ----------
+const sliders = document.getElementById('sliders');
+function relsFor(id){
+return EDGES.filter(e=>e.a===id||e.b===id).map(e=>{
+const other = e.a===id ? e.b : e.a;
+return {other, sign:e.sign, regime:e.regime, tag:e.tag, math:e.math, eli5:e.eli5};
+});
+}
+FACTORS.forEach(f=>{
+const card=document.createElement('div');
+card.className='card'; card.dataset.id=f.id;
+card.innerHTML=`
+<div class="name"><span><span class="emoji">${f.emoji}</span> ${f.name}</span></div>
+<div class="val" id="val-${f.id}">50</div>
+<div class="slot">
+<input class="vert" type="range" min="0" max="100" value="50" id="sl-${f.id}" aria-label="${f.name}">
+<div class="scale"><span>High</span><span>Low</span></div>
+</div>
+<button class="explain" id="ex-${f.id}">Explain ▾</button>`;
+sliders.appendChild(card);
+card.querySelector('input').addEventListener('input',e=>drive(f.id, +e.target.value));
+card.querySelector('.explain').addEventListener('click',()=>toggleDetail(f.id));
+});
+
+// ---------- EXPLAIN DRAWER (one shared panel below the row) ----------
+const detail=document.getElementById('detail');
+let openFactor=null;
+function relRowsHTML(id){
+return relsFor(id).map(r=>{
+const o=F[r.other];
+const cls=r.sign==='+'?'pos':'neg';
+const dir=r.sign==='+'?'↑':'↓';
+const word=r.sign==='+'?'together':'opposite';
+return `<div class="rel">
+<div class="rel-head">
+<span class="oth">${o.emoji} ${o.name}</span>
+<span class="pair ${cls}">this↑ · ${o.short}${dir} · ${word}</span>
+${r.regime?'<span class="regime" title="Regime-dependent: this link can flip sign in some market regimes">⚡</span>':''}
+</div>
+<div class="rel-body"><span class="eli5">${r.eli5}</span><span class="math">${r.math}</span></div>
+</div>`;
+}).join('');
+}
+function renderDetail(id){
+const f=F[id];
+detail.innerHTML=`
+<div class="dhead">
+<h3>${f.emoji} ${f.name} — what it is & what moves it</h3>
+<div class="tabs">
+<button data-t="eli5">🧸 ELI5</button>
+<button data-t="math">📐 Math</button>
+</div>
+</div>
+<div class="what">
+<span class="lbl">What is it?</span>
+<span class="eli5">${f.eli5}</span><span class="math">${f.math}</span>
+</div>
+<div class="rels">${relRowsHTML(id)}</div>`;
+detail.querySelectorAll('.tabs button').forEach(b=>b.addEventListener('click',()=>{detail.dataset.tab=b.dataset.t;}));
+}
+function toggleDetail(id){
+if(openFactor===id){
+detail.hidden=true; openFactor=null;
+document.querySelectorAll('.card').forEach(c=>c.classList.remove('active'));
+document.getElementById('ex-'+id).textContent='Explain ▾';
+return;
+}
+openFactor=id; renderDetail(id); detail.hidden=false;
+document.querySelectorAll('.card').forEach(c=>{
+const on=c.dataset.id===id;
+c.classList.toggle('active',on);
+c.querySelector('.explain').textContent = on?'Close ▴':'Explain ▾';
+});
+detail.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+// ---------- VISUAL UPDATE ----------
+function setVisual(id,val){
+const el=document.getElementById('sl-'+id);
+const label=document.getElementById('val-'+id);
+el.value=val;
+const d=val-50;
+const color = Math.abs(d)<1.5 ? 'var(--neutral)' : (d>0?'var(--up)':'var(--down)');
+el.style.accentColor=color;
+const arrow = Math.abs(d)<1.5 ? '' : (d>0?'<span class="arrow" style="color:var(--up)">▲</span>':'<span class="arrow" style="color:var(--down)">▼</span>');
+label.innerHTML = Math.round(val) + arrow;
+}
+
+// ---------- APPLY (with optional tween) ----------
+let tweenId=null;
+function apply(dev, pinnedIds, tween){
+const targets={}; FACTORS.forEach(f=>targets[f.id]=50+dev[f.id]);
+if(!tween){ FACTORS.forEach(f=>setVisual(f.id,targets[f.id])); return; }
+cancelAnimationFrame(tweenId);
+const start={}; FACTORS.forEach(f=>start[f.id]=+document.getElementById('sl-'+f.id).value);
+const t0=performance.now(), dur=380;
+(function step(now){
+const k=Math.min(1,(now-t0)/dur), e=1-Math.pow(1-k,3);
+FACTORS.forEach(f=>setVisual(f.id, start[f.id]+(targets[f.id]-start[f.id])*e));
+if(k<1) tweenId=requestAnimationFrame(step);
+})(performance.now());
+}
+
+// ---------- WHY PANEL ----------
+function edgeBetween(a,b){ return EDGES.find(e=>(e.a===a&&e.b===b)||(e.a===b&&e.b===a)); }
+// Honest reasons for asymmetric / net-of-chain effects where a factor moves OPPOSITE its direct pairwise label
+const WHY_OVERRIDE={
+'policy_rate>inflation':'hikes cool inflation (lagged)',
+'policy_rate>gold':'higher real yields raise gold’s opportunity cost',
+'inflation>gold':'nominal rates rose faster — real yields up ⚡',
+};
+function reasonFor(driverIds, moverId, netDev){
+if(moverId==='bond_price'){
+const yv=+document.getElementById('sl-bond_yield').value-50;
+return yv>0.5?'yields rose → bonds cheaper':(yv<-0.5?'yields fell → bonds dearer':'mirror of the yield');
+}
+for(const d of driverIds){ const k=d+'>'+moverId; if(WHY_OVERRIDE[k]) return WHY_OVERRIDE[k]; }
+for(const d of driverIds){
+const e=edgeBetween(d,moverId);
+if(e && ((e.sign==='+'&&netDev>0)||(e.sign==='-'&&netDev<0))) return e.tag+(e.regime?' ⚡':'');
+}
+return 'knock-on ripple effect';
+}
+function updateWhy(driverIds, dev){
+const dEl=document.getElementById('whyDriver'), list=document.getElementById('whyList');
+if(!driverIds.length){ dEl.textContent='Grab a slider (or pick a scenario) to see the chain reaction explained.'; list.innerHTML=''; return; }
+const names=driverIds.map(id=>{const d=dev[id];const a=d>0?'up ▲':(d<0?'down ▼':'');return `${F[id].emoji} <b>${F[id].name}</b> ${a}`;}).join(' &nbsp;+&nbsp; ');
+dEl.innerHTML='You moved '+names+'. Here’s the ripple:';
+const movers=FACTORS.filter(f=>!driverIds.includes(f.id))
+.map(f=>({f,d:dev[f.id]}))
+.filter(m=>Math.abs(m.d)>=1.5)
+.sort((x,y)=>Math.abs(y.d)-Math.abs(x.d));
+if(!movers.length){ list.innerHTML='<li class="empty">Barely a ripple — this driver has weak links to the rest.</li>'; return; }
+list.innerHTML=movers.map(m=>{
+const up=m.d>0, cls=up?'u':'d', arr=up?'▲':'▼';
+const reason=reasonFor(driverIds,m.f.id,m.d);
+return `<li><span class="mv ${cls}">${arr} ${Math.abs(Math.round(m.d))}</span>
+<span>${m.f.emoji} <b>${m.f.name}</b><small>${reason}</small></span></li>`;
+}).join('');
+}
+
+// ---------- DRIVE (single slider) ----------
+function drive(id,val){
+const pinned=new Map([[id, val-50]]);
+const dev=solve(pinned);
+dev[id]=val-50;
+FACTORS.forEach(f=>{ if(f.id!==id) setVisual(f.id,50+dev[f.id]); });
+setVisual(id,val);
+updateWhy([id],dev);
+}
+
+// ---------- PRESETS ----------
+const PRESETS={
+// 1970s: supply-shock inflation + a central bank behind the curve (negative real rates) → gold soars
+stagflation:{inflation:34, oil:30, policy_rate:-6},
+// 2008: demand-collapse credit crisis — equity crash + emergency cuts + oil demand slump → bonds & gold rally, disinflation
+gfc:{stocks:-34, policy_rate:-30, oil:-22},
+// COVID '20: sudden stop — equity crash + oil demand collapse + rates to zero → deflation scare, gold up
+covid:{stocks:-44, oil:-42, policy_rate:-38},
+// 2022: hot inflation + aggressive hikes → real yields up, gold DOWN despite inflation (the key lesson)
+hikes:{inflation:30, policy_rate:34},
+// War shock: safe-haven + oil supply premium
+war:{geopolitical:40, oil:30},
+};
+document.getElementById('presets').addEventListener('click',e=>{
+const b=e.target.closest('button'); if(!b) return;
+const key=b.dataset.preset;
+if(key==='reset'){
+const dev={}; FACTORS.forEach(f=>dev[f.id]=0);
+apply(dev,[],true); updateWhy([],dev); return;
+}
+const p=PRESETS[key];
+const pinned=new Map(Object.entries(p));
+const dev=solve(pinned);
+Object.entries(p).forEach(([k,v])=>dev[k]=v);
+apply(dev,Object.keys(p),true);
+updateWhy(Object.keys(p),dev);
+});
+
+// init neutral
+FACTORS.forEach(f=>setVisual(f.id,50));
+</script>
+</body>
+</html>
